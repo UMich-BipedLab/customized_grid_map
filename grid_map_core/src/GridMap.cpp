@@ -42,6 +42,39 @@ GridMap::GridMap(const std::vector<std::string>& layers) {
 
 GridMap::GridMap() : GridMap(std::vector<std::string>()) {}
 
+void GridMap::setGeometry2(const Length& length, const double resolution, const Position& position) {
+  assert(length(0) > 0.0);
+  assert(length(1) > 0.0);
+  assert(resolution > 0.0);
+
+  Size size;
+  size(0) = (int) (round(length(0) / resolution));  // There is no round() function in Eigen.
+  size(1) = (int) (round(length(1) / resolution));
+
+  // std::cout << "size in setGeometry2 before: " << size_ << std::endl;
+  // size_ = size;
+  // std::cout << "size in setGeometry2 after: " << size_ << std::endl;
+  // for (auto& data : data_) {
+  //   std::cout << "data.second.size1: " << data.second.size() << " ==> ";
+  //   data.second.resize(size_(0), size_(1));
+  //   std::cout << "data.second.size2: " << data.second.size() << std::endl;
+  //   data.second.setConstant(NAN);
+  // }
+
+  resize(size);
+  clearAll();
+
+  resolution_ = resolution;
+  length_ = (size_.cast<double>() * resolution_).matrix();
+  position_ = position;
+  startIndex_.setZero();
+
+  return;
+}
+void GridMap::setGeometry2(const SubmapGeometry& geometry) {
+  setGeometry2(geometry.getLength(), geometry.getResolution(), geometry.getPosition());
+}
+
 void GridMap::setGeometry(const Length& length, const double resolution, const Position& position) {
   assert(length(0) > 0.0);
   assert(length(1) > 0.0);
@@ -50,7 +83,9 @@ void GridMap::setGeometry(const Length& length, const double resolution, const P
   Size size;
   size(0) = static_cast<int>(round(length(0) / resolution));  // There is no round() function in Eigen.
   size(1) = static_cast<int>(round(length(1) / resolution));
+  // std::cout << "size in setGeometry1 before: " << size_ << std::endl;
   resize(size);
+  // std::cout << "size in setGeometry1 after: " << size_ << std::endl;
   clearAll();
 
   resolution_ = resolution;
@@ -284,18 +319,19 @@ bool GridMap::getVector(const std::string& layerPrefix, const Index& index, Eige
   }
 }
 
-GridMap GridMap::getSubmap(const Position& position, const Length& length, bool& isSuccess) const {
+GridMap GridMap::getSubmap(const Position& position, const Length& length, bool& isSuccess, int flag)  const {
   Index index;
-  return getSubmap(position, length, index, isSuccess);
+  return getSubmap(position, length, index, isSuccess, flag);
 }
 
-GridMap GridMap::getSubmap(const Position& position, const Length& length, Index& indexInSubmap, bool& isSuccess) const {
+GridMap GridMap::getSubmap(const Position& position, const Length& length, Index& indexInSubmap, bool& isSuccess, int flag)  const{
   // Submap the generate.
   GridMap submap(layers_);
   submap.setBasicLayers(basicLayers_);
   submap.setTimestamp(timestamp_);
   submap.setFrameId(frameId_);
 
+  // std::cout << "submap1" << std::endl;
   // Get submap geometric information.
   SubmapGeometry submapInformation(*this, position, length, isSuccess);
   if (!isSuccess) {
@@ -306,17 +342,30 @@ GridMap GridMap::getSubmap(const Position& position, const Length& length, Index
 
   // Copy data.
   std::vector<BufferRegion> bufferRegions;
-
+  // std::cout << "submapInformation.getStartIndex(): " << submapInformation.getStartIndex() << std::endl;
+  // std::cout << "size_: " << size_ << std::endl;
+  // std::cout << "startIndex_: " << startIndex_ << std::endl;
+  // std::cout << "submap.getSize(): " << submap.getSize() << std::endl;
   if (!getBufferRegionsForSubmap(bufferRegions, submapInformation.getStartIndex(), submap.getSize(), size_, startIndex_)) {
     cout << "Cannot access submap of this size." << endl;
     isSuccess = false;
     return GridMap(layers_);
   }
-
+  
+  // std::cout << "GridMap::getSubmap() | bufferRegions.size(): " << bufferRegions.size() << "\n";
+  // std::cout << "GridMap::getSubmap() | data_.size(): " << data_.size() << "\n";
+  // std::cout << "GridMap::getSubmap() | submap.data_.size(): " << submap.data_.size() << "\n";
+  
   for (const auto& data : data_) {
     for (const auto& bufferRegion : bufferRegions) {
       Index index = bufferRegion.getStartIndex();
       Size size = bufferRegion.getSize();
+      // std::cout << "data.first, bufferRegion index, size: " << data.first << " | " << index[0] << "," << index[1] << " ; " << size[0] << "," << size[1] << std::endl;
+      // std::cout << "submap.data_[" << data.first << "].size(): " << submap.data_[data.first].size() << std::endl;
+      // std::cout << "data.second.block(index...).size(): " << data.second.block(index(0), index(1), size(0), size(1)).size() << std::endl;
+      // std::cout << "data.second.size(): " << data.second.size() << std::endl;
+      // std::cout << "isValid: " << isValid(index, data.first) << std::endl;
+      // std::cout << "isValid(0,0): " << isValid(Index(0,0), data.first) << std::endl;
 
       if (bufferRegion.getQuadrant() == BufferRegion::Quadrant::TopLeft) {
         submap.data_[data.first].topLeftCorner(size(0), size(1)) = data.second.block(index(0), index(1), size(0), size(1));
@@ -331,6 +380,16 @@ GridMap GridMap::getSubmap(const Position& position, const Length& length, Index
   }
 
   isSuccess = true;
+  // std::cout << "GridMap::getSubmap submap2" << std::endl;
+  // 
+  // std::cout << "this->printInfo in GridMap::getSUbmap: ====\n";
+  // printInfo();
+
+
+  // submap.flag = flag;
+  // std::cout << "GridMap::getSubmap submap.printInfo() ===\n";
+  // submap.printInfo();
+
   return submap;
 }
 

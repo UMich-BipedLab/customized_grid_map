@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <iostream>
+
 #include "grid_map_core/TypeDefs.hpp"
 #include "grid_map_core/SubmapGeometry.hpp"
 #include "grid_map_core/BufferRegion.hpp"
@@ -40,6 +42,17 @@ class SubmapGeometry;
 class GridMap
 {
  public:
+  int flag = -1;
+  GridMap(int flag) : flag(flag) { };
+  GridMap getSubmap(int flag) const 
+  {
+      GridMap submap(flag);
+      std::cout << "inside getsubmap with flag: "<< flag << std::endl;
+      return submap;
+  }
+
+
+
   // Type traits for use with template methods/classes using GridMap as a template parameter.
   typedef grid_map::DataType DataType;
   typedef grid_map::Matrix Matrix;
@@ -58,15 +71,80 @@ class GridMap
   /*!
    * Default copy assign and copy constructors.
    */
-  GridMap(const GridMap&) = default;
-  GridMap& operator=(const GridMap&) = default;
-  GridMap(GridMap&&) = default;
-  GridMap& operator=(GridMap&&) = default;
+  // GridMap(const GridMap&) = default;
+  // GridMap& operator=(const GridMap&) = default;
+  // GridMap(GridMap&&) = default;
+  // GridMap& operator=(GridMap&&) = default;
+
+  GridMap& operator=(const GridMap& gridmap) {
+
+      // std::cout << "&=" << std::endl;
+      position_ = gridmap.position_;
+      length_ = gridmap.length_;
+      resolution_ = gridmap.resolution_;
+      size_ = gridmap.size_;
+      timestamp_ = gridmap.timestamp_;
+      layers_ = gridmap.layers_;
+      data_ = gridmap.data_;
+      frameId_ = gridmap.frameId_;
+      basicLayers_ = gridmap.basicLayers_;
+      startIndex_ = gridmap.startIndex_;
+
+      return *this;
+  };
+
+  GridMap(GridMap&& gridmap) {
+        position_ = gridmap.position_;
+        length_ = gridmap.length_;
+        resolution_ = gridmap.resolution_;
+        size_ = gridmap.size_;
+        timestamp_ = gridmap.timestamp_;
+        layers_ = gridmap.layers_;
+        data_ = gridmap.data_;
+        frameId_ = gridmap.frameId_;
+        basicLayers_ = gridmap.basicLayers_;
+        startIndex_ = gridmap.startIndex_;
+  }
+  
+  GridMap& operator=(GridMap&& gridmap) {
+      // std::cout << "&&=" << std::endl;
+      position_ = gridmap.position_;
+      length_ = gridmap.length_;
+      resolution_ = gridmap.resolution_;
+      size_ = gridmap.size_;
+      timestamp_ = gridmap.timestamp_;
+      layers_ = gridmap.layers_;
+      data_ = gridmap.data_;
+      frameId_ = gridmap.frameId_;
+      basicLayers_ = gridmap.basicLayers_;
+      startIndex_ = gridmap.startIndex_;
+
+      return *this;
+  }
+
+  GridMap(const GridMap& gridmap) {
+        position_ = gridmap.position_;
+        length_ = gridmap.length_;
+        resolution_ = gridmap.resolution_;
+        size_ = gridmap.size_;
+        timestamp_ = gridmap.timestamp_;
+        layers_ = gridmap.layers_;
+        data_ = gridmap.data_;
+        frameId_ = gridmap.frameId_;
+        basicLayers_ = gridmap.basicLayers_;
+        startIndex_ = gridmap.startIndex_;
+  }
 
   /*!
    * Destructor.
    */
-  virtual ~GridMap() = default;
+  // virtual ~GridMap() = default;
+  virtual ~GridMap()  
+  {
+      // std::cout << "[GRIDMAP] in destructor .. deleted the gridmap of info ===\n";
+      // this->printInfo();
+      // clearAll();
+  };
 
   /*!
    * Set the geometry of the grid map. Clears all the data.
@@ -76,12 +154,15 @@ class GridMap
    */
   void setGeometry(const Length& length, const double resolution,
                    const Position& position = Position::Zero());
+  void setGeometry2(const Length& length, const double resolution,
+                   const Position& position = Position::Zero());
 
   /*!
    * Set the geometry of the grid map from submap geometry information.
    * @param geometry the submap geometry information.
    */
   void setGeometry(const SubmapGeometry& geometry);
+  void setGeometry2(const SubmapGeometry& geometry);
 
   /*!
    * Add a new empty data layer.
@@ -296,7 +377,7 @@ class GridMap
    * @param[out] isSuccess true if successful, false otherwise.
    * @return submap (is empty if success is false).
    */
-  GridMap getSubmap(const Position& position, const Length& length, bool& isSuccess) const;
+  GridMap getSubmap(const Position& position, const Length& length, bool& isSuccess, int flag = -1) const ;
 
   /*!
    * Gets a submap from the map. The requested submap is specified with the requested
@@ -310,7 +391,7 @@ class GridMap
    * @return submap (is empty if success is false).
    */
   GridMap getSubmap(const Position& position, const Length& length, Index& indexInSubmap,
-                    bool& isSuccess) const;
+                    bool& isSuccess, int flag = -1) const ;
 
   /*!
    * Apply isometric transformation (rotation + offset) to grid map and returns the transformed map.
@@ -483,6 +564,22 @@ class GridMap
    * @return position in map.
    */
   Position getClosestPositionInMap(const Position& position) const;
+  
+  void printInfo() const {
+      std::cout << "flag: " << flag << std::endl;
+      std::cout<< "address: " << this << std::endl;
+      // std::cout << "size_: " << size_ << std::endl;
+      // std::cout << "length_: " << length_ << std::endl;
+      // std::cout << "frameId_: " << frameId_ << std::endl;
+      // std::cout << "timestamp_: " << timestamp_ << std::endl;
+      // std::cout << "data_.size(): " << data_.size() << std::endl;
+      // std::cout << "layers_.size(): " << layers_.size() << std::endl;
+      // std::cout << "basicLayers_.size(): " << basicLayers_.size() << std::endl;
+      // std::cout << "resolution_: " << resolution_ << std::endl;
+      // std::cout << "position_: " << position_ << std::endl;
+      // std::cout << "startIndex_: " << startIndex_ << std::endl;
+      std::cout << std::endl;
+ }
 
  private:
   /**
